@@ -316,6 +316,17 @@ svg.icon-sm { width: 16px; height: 16px; }
   transition: box-shadow var(--motion-base) var(--ease-standard);
 }
 .product-card:hover { box-shadow: var(--elev-raised); }
+.product-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-2); }
+.product-card h3 { margin: 4px 0 0; font-size: var(--text-lg); line-height: var(--leading-tight); }
+.product-card p { margin: 0; color: var(--muted); }
+.product-card .product-desc { margin-top: auto; color: var(--fg-2); line-height: var(--leading-relaxed); }
+.product-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); font-size: var(--text-sm); color: var(--muted); }
+.status-badge { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 9px; border: 1px solid var(--border); border-radius: 999px; font-size: var(--text-xs); font-weight: 600; }
+.status-badge.fresh { background: #e9f8ef; border-color: #b8e4c7; color: #17653a; }
+.status-badge.warn { background: #fff5df; border-color: #ead39f; color: #7b5311; }
+.status-badge.stale, .status-badge.pending { background: var(--surface-warm); color: var(--muted); }
+.card-link { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 44px; color: var(--accent); font-weight: 600; text-decoration: none; }
+.card-link:hover { text-decoration: underline; }
 .product-card .card-top {
   display: flex;
   justify-content: space-between;
