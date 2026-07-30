@@ -13,8 +13,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 
-  <link rel="stylesheet" href="css/tokens.css?v=mapfirst-20260730">
-  <link rel="stylesheet" href="css/app.css?v=mapfirst-20260730">
+  <link rel="stylesheet" href="css/tokens.css?v=location-map-20260730">
+  <link rel="stylesheet" href="css/app.css?v=location-map-20260730">
 </head>
 <body>
   <a class="skip-link" href="#main">본문으로 건너뛰기</a>
@@ -49,30 +49,41 @@
   <main id="main">
     <!-- ─── 홈 화면 ─── -->
     <section id="view-home">
-      <!-- 지도-first 홈: 거지맵의 지도 탐색 + 하단 랭킹 패턴을 신상 제보 흐름에 맞게 변환 -->
-      <section class="map-first-shell" aria-labelledby="map-first-heading">
-        <div class="map-first-top container">
-          <div>
-            <span class="eyebrow">신상 제보 지도</span>
+      <section class="map-first-shell map-canvas-shell" aria-labelledby="map-first-heading">
+        <div class="map-overlay map-overlay-top container">
+          <div class="map-overlay-heading">
+            <span class="eyebrow">내 주변 신상 제보</span>
             <h1 id="map-first-heading">지금 주변에 어떤 신상이 나왔을까요?</h1>
           </div>
-          <button type="button" class="btn btn-primary btn-sm" data-action="open-report">
+          <button type="button" class="btn btn-primary btn-sm map-report-btn" data-action="open-report">
             <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-            제보하기
+            제보
           </button>
         </div>
-        <div class="map-first-controls container" role="group" aria-label="지도 필터">
+        <form id="map-search-form" class="map-overlay map-search-overlay container" role="search">
+          <label class="visually-hidden" for="map-search-input">제품명 검색</label>
+          <input id="map-search-input" type="search" placeholder="제품명이나 카테고리 검색" autocomplete="off">
+          <button type="submit" class="btn btn-primary" aria-label="지도에서 검색">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+            검색
+          </button>
+        </form>
+        <div class="map-overlay map-first-controls container" role="group" aria-label="지도 필터">
           <button type="button" class="filter-chip active" data-action="home-filter" data-filter="all">전체</button>
           <button type="button" class="filter-chip" data-action="home-filter" data-filter="아이스크림">아이스크림</button>
           <button type="button" class="filter-chip" data-action="home-filter" data-filter="과자">과자</button>
           <button type="button" class="filter-chip" data-action="home-filter" data-filter="fresh">최근 확인</button>
           <button type="button" class="filter-chip" data-action="home-filter" data-filter="sample">샘플 보기</button>
         </div>
-        <div id="home-map" class="home-map" aria-label="신상 제보 지도"></div>
-        <div class="map-first-sheet container" aria-labelledby="home-ranking-heading">
+        <div id="home-map" class="home-map" aria-label="내 주변 신상 제보 지도"></div>
+        <button type="button" class="map-location-btn" data-action="locate-me" aria-label="내 위치로 지도 이동">
+          <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+          내 위치
+        </button>
+        <div class="map-first-sheet map-overlay container" aria-labelledby="home-ranking-heading">
           <div class="map-sheet-handle" aria-hidden="true"></div>
           <div class="map-sheet-head">
-            <div><h2 id="home-ranking-heading">최근 제보</h2><p id="home-map-summary">지도에서 핀을 눌러 판매처 제보를 확인하세요.</p></div>
+            <div><h2 id="home-ranking-heading">지도에 표시된 최근 제보</h2><p id="home-map-summary">내 위치 주변의 제보를 불러오는 중이에요.</p></div>
             <button type="button" class="btn btn-neutral btn-sm" data-action="scroll-products">제품 전체 보기</button>
           </div>
           <div id="home-report-list" class="home-report-list"></div>

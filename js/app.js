@@ -17,6 +17,9 @@
     mapInitialized: false,
     homeMap: null,
     homeFilter: 'all',
+    homeCoords: null,
+    locationRequested: false,
+    locationLabel: '내 위치 권한을 허용하면 주변으로 이동해요.',
     saved: loadJson(STORAGE.saved, []),
     recent: loadJson(STORAGE.recent, []),
     draft: loadJson(STORAGE.draft, null)
@@ -146,9 +149,15 @@
     if (!el || !window.L) return;
     var reports = filteredHomeReports();
     if (APP.homeMap) { APP.homeMap.remove(); APP.homeMap = null; }
-    APP.homeMap = L.map(el, { scrollWheelZoom: false, zoomControl: false }).setView([37.55, 126.98], 10);
+    var center = APP.homeCoords || [37.5665, 126.9780];
+    var zoom = APP.homeCoords ? 14 : 12;
+    APP.homeMap = L.map(el, { scrollWheelZoom: true, zoomControl: false }).setView(center, zoom);
     L.control.zoom({ position: 'topright' }).addTo(APP.homeMap);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OpenStreetMap contributors' }).addTo(APP.homeMap);
+    if (APP.homeCoords) {
+      L.circle(APP.homeCoords, { radius: 90, color: '#4f46e5', fillColor: '#818cf8', fillOpacity: 0.18, weight: 2 }).addTo(APP.homeMap);
+      L.circleMarker(APP.homeCoords, { radius: 7, color: '#fff', fillColor: '#4f46e5', fillOpacity: 1, weight: 3 }).addTo(APP.homeMap).bindTooltip('내 위치', { direction: 'top', offset: [0, -8] });
+    }
     reports.forEach(function (report) {
       var product = productById(report.productId);
       var f = freshness(report.confirmedAt);
@@ -159,13 +168,34 @@
         if (button) button.addEventListener('click', function () { openProduct(report.productId); });
       });
     });
-    if (reports.length > 1) APP.homeMap.fitBounds(reports.map(function (r) { return [r.lat, r.lng]; }), { padding: [28, 28], maxZoom: 11 });
+    if (!APP.homeCoords && reports.length > 1) APP.homeMap.fitBounds(reports.map(function (r) { return [r.lat, r.lng]; }), { padding: [28, 28], maxZoom: 11 });
     setTimeout(function () { if (APP.homeMap) APP.homeMap.invalidateSize(); }, 100);
     renderHomeMapList(reports);
+  }
+  function locateMe() {
+    var summary = $('#home-map-summary');
+    if (!navigator.geolocation) { APP.locationLabel = '이 브라우저에서는 위치 기능을 지원하지 않아요.'; if (summary) summary.textContent = APP.locationLabel; return; }
+    if (summary) summary.textContent = '현재 위치를 확인하고 있어요…';
+    navigator.geolocation.getCurrentPosition(function (position) {
+      APP.homeCoords = [position.coords.latitude, position.coords.longitude];
+      APP.locationLabel = '현재 위치 주변으로 이동했어요.';
+      renderHomeMap();
+      if (summary) summary.textContent = APP.locationLabel + ' 지도 핀을 눌러 제보를 확인하세요.';
+    }, function () {
+      APP.locationLabel = '위치 권한을 사용할 수 없어 서울을 기본 위치로 보여드려요.';
+      if (summary) summary.textContent = APP.locationLabel;
+      if (APP.homeMap) APP.homeMap.setView([37.5665, 126.9780], 12);
+    }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
+  }
+  function requestLocationOnce() {
+    if (APP.locationRequested) return;
+    APP.locationRequested = true;
+    locateMe();
   }
   function renderHomeMap() {
     $all('[data-action="home-filter"]').forEach(function (button) { button.classList.toggle('active', button.dataset.filter === APP.homeFilter); });
     initHomeMap();
+    requestLocationOnce();
   }
   function renderHome() {
     var grid = $('#product-grid');
@@ -178,6 +208,7 @@
     if (note) note.textContent = APP.query ? '“' + APP.query + '” 검색 결과 ' + products.length + '개' : '현재 ' + DATA.products.length + '개 제품';
     renderSaved(); renderRecent(); renderSuggestions(); renderHomeMap();
     var input = $('#search-input'); if (input && input.value !== APP.query) input.value = APP.query;
+    var mapInput = $('#map-search-input'); if (mapInput && mapInput.value !== APP.query) mapInput.value = APP.query;
   }
   function showView(name) {
     $('#view-home').hidden = name !== 'home';
@@ -279,6 +310,7 @@
     if (action === 'toggle-save') { toggleSave(target.dataset.productId); return; }
     if (action === 'open-report') { openReport(target.dataset.productId); return; }
     if (action === 'home-filter') { APP.homeFilter = target.dataset.filter || 'all'; renderHomeMap(); return; }
+    if (action === 'locate-me') { locateMe(); return; }
     if (action === 'scroll-products') { var productSection = $('#products-section'); if (productSection) productSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (action === 'close-report') { closeReport(); return; }
     if (action === 'new-report') { openReport(APP.selectedProductId); return; }
@@ -288,6 +320,7 @@
   }
   document.addEventListener('click', function (event) { var target = event.target.closest('[data-action]'); if (target) { event.preventDefault(); handleAction(target); } });
   $('#search-form').addEventListener('submit', function (event) { event.preventDefault(); var input = $('#search-input'); APP.query = String(input.value || '').trim(); pushRecent(APP.query); renderHome(); });
+  $('#map-search-form').addEventListener('submit', function (event) { event.preventDefault(); var input = $('#map-search-input'); APP.query = String(input.value || '').trim(); pushRecent(APP.query); renderHome(); });
   $('#report-form').addEventListener('submit', handleFormSubmit);
   $('#report-modal').addEventListener('click', function (event) { if (event.target === event.currentTarget) closeReport(); });
   document.addEventListener('change', function (event) { if (event.target.dataset.action === 'sort-reports') { APP.sort = event.target.value; if (APP.selectedProductId) renderDetail(productById(APP.selectedProductId)); } });
