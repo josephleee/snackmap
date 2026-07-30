@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>신상지도 — 신상 과자·아이스크림 판매처 제보 지도</title>
+  <meta name="description" content="Instagram에서 본 신상 과자·아이스크림, 어디서 파는지 함께 찾는 공개 제보 지도. 판매처를 검색하고 직접 제보해 보세요.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="#/" data-action="go-home" aria-label="신상지도 홈으로">
+        <svg class="icon brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+        <span>신상지도</span>
+        <span class="brand-tag">beta</span>
+      </a>
+      <div class="header-actions">
+        <button type="button" class="icon-btn" id="header-saved-btn" data-action="scroll-saved"
+                aria-label="저장한 제품 보기" aria-pressed="false">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+          </svg>
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" data-action="open-report">
+          <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5v14M5 12h14"></path>
+          </svg>
+          <span class="btn-label">제보하기</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ─── 홈 화면 ─── -->
+    <section id="view-home">
+      <div class="hero container">
+        <h1>그 신상, 어디서 팔까요?</h1>
+        <p class="hero-lede">
+          Instagram에서 본 신상 과자·아이스크림, 매장마다 있다 없다 하죠.
+          신상지도는 &ldquo;여기서 봤어요&rdquo; 공개 제보를 모아 판매처를 함께 찾는 지도예요.
+        </p>
+        <form id="search-form" class="search-form" role="search" aria-label="제품 검색">
+          <div class="search-field">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="m21 21-4.3-4.3"></path>
+            </svg>
+            <label class="visually-hidden" for="search-input">제품명 검색</label>
+            <input id="search-input" type="search" name="q" autocomplete="off"
+                   placeholder="예: 비얀코 트리플 피넛&amp;버터" maxlength="60">
+          </div>
+          <button type="submit" class="btn btn-primary">검색</button>
+        </form>
+        <div id="suggestion-chips" class="chip-row" aria-label="추천 검색어"></div>
+        <div id="recent-chips" class="chip-row" aria-label="최근 검색어" hidden></div>
+      </div>
+
+      <div class="container">
+        <section id="saved-section" class="section" aria-labelledby="saved-heading" hidden>
+          <div class="section-head">
+            <h2 id="saved-heading">저장한 제품</h2>
+            <span class="section-note">이 브라우저에만 저장돼요</span>
+          </div>
+          <div id="saved-grid" class="card-grid"></div>
+        </section>
+
+        <section id="products-section" class="section" aria-labelledby="products-heading">
+          <div class="section-head">
+            <h2 id="products-heading">신상 제품</h2>
+            <span class="section-note" id="products-note"></span>
+          </div>
+          <div id="product-grid" class="card-grid"></div>
+          <div id="search-empty" class="state-panel" hidden>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="m21 21-4.3-4.3"></path>
+              <path d="M8 11h6"></path>
+            </svg>
+            <h3>검색 결과가 없어요</h3>
+            <p id="search-empty-text">
+              아직 등록되지 않은 제품이에요. 직접 제보하면 이 제품을 찾는 다른 사람에게 큰 도움이 돼요.
+            </p>
+            <div class="state-actions">
+              <button type="button" class="btn btn-primary" data-action="open-report" id="search-empty-report">
+                이 제품 제보하기
+              </button>
+              <button type="button" class="btn btn-neutral" data-action="clear-search">전체 제품 보기</button>
+            </div>
+          </div>
+          <p id="search-status" class="visually-hidden" role="status"></p>
+        </section>
+      </div>
+
+      <section class="trust-section section" aria-labelledby="trust-heading">
+        <div class="container">
+          <div class="section-head">
+            <h2 id="trust-heading">제보를 어떻게 읽어야 하나요?</h2>
+          </div>
+          <div class="trust-grid">
+            <div class="trust-item">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+              <div>
+                <h3>제보는 &ldquo;목격 정보&rdquo;예요</h3>
+                <p>
+                  제보는 누군가 그 시점에 매장에서 제품을 봤다는 기록이지, 지금 재고가 있다는 보장이
+                  아니에요. 방문 전에는 최신 제보 시각을 꼭 확인하세요.
+                </p>
+              </div>
+            </div>
+            <div class="trust-item">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 7v5l3 3"></path>
+              </svg>
+              <div>
+                <h3>상태 배지로 최신성을 표시해요</h3>
+                <p>
+                  3일 이내 제보는 <strong>최근 확인</strong>, 2주 이내는 <strong>확인 필요</strong>,
+                  그보다 오래되면 <strong>오래됨</strong>으로 표시돼요. 오래된 제보일수록 품절
+                  가능성이 높아요.
+                </p>
+              </div>
+            </div>
+            <div class="trust-item">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <div>
+                <h3>위치는 구 단위 대략 위치예요</h3>
+                <p>
+                  지도에 표시되는 위치는 정확한 주소가 아니라 제보된 지역(구)의 대략적인 중심이에요.
+                  출처가 <strong>개발용 샘플</strong>인 제보는 실제 매장 정보가 아니에요.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-band" aria-labelledby="cta-heading">
+        <div class="container">
+          <h2 id="cta-heading">오늘 본 신상, 30초만 제보해 주세요</h2>
+          <p>
+            제보는 GitHub 이슈로 공개 수집돼요. 매장명과 지역, 확인한 시각만 적으면
+            같은 제품을 찾는 사람들이 바로 볼 수 있어요.
+          </p>
+          <button type="button" class="btn btn-primary" data-action="open-report">제보 작성하기</button>
+        </div>
+      </section>
+    </section>
+
+    <!-- ─── 제품 상세 화면 ─── -->
+    <section id="view-product" class="section" hidden>
+      <div class="container">
+        <a class="back-link" href="#/" data-action="go-home">
+          <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m12 19-7-7 7-7M5 12h14"></path>
+          </svg>
+          제품 목록으로
+        </a>
+        <div id="product-detail"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ─── 제보 모달 ─── -->
+  <dialog id="report-modal" class="modal" aria-labelledby="report-modal-title">
+    <div class="modal-header">
+      <h2 id="report-modal-title">판매처 제보하기</h2>
+      <button type="button" class="icon-btn" data-action="close-report" aria-label="제보 창 닫기">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="report-form-wrap">
+        <p class="modal-lede">
+          제보는 <strong>공개 GitHub 이슈</strong>로 등록돼요. 작성 완료를 누르면 내용이 채워진
+          이슈 작성 화면이 열리고, GitHub 로그인 후 등록하면 제보가 접수돼요.
+        </p>
+        <div id="draft-notice" class="form-notice" hidden>
+          <span>임시저장된 초안을 불러왔어요.</span>
+          <button type="button" class="btn btn-neutral btn-sm" data-action="discard-draft">초안 지우기</button>
+        </div>
+        <div id="form-error-summary" class="form-error-summary" role="alert" hidden></div>
+        <form id="report-form" class="form-grid" novalidate>
+          <div class="form-field">
+            <label for="f-product">제품명</label>
+            <input id="f-product" name="product" type="text" required maxlength="60"
+                   placeholder="예: 비얀코 트리플 피넛&amp;버터">
+            <p class="field-error" id="err-product" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="f-store">매장명</label>
+            <input id="f-store" name="store" type="text" required maxlength="60"
+                   placeholder="예: OO 아이스크림 할인점">
+            <p class="field-hint">상호를 모르면 &ldquo;아이스크림 할인점&rdquo;처럼 종류만 적어도 돼요.</p>
+            <p class="field-error" id="err-store" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="f-region">지역</label>
+            <input id="f-region" name="region" type="text" required maxlength="40"
+                   list="region-list" placeholder="예: 서울 마포구">
+            <datalist id="region-list"></datalist>
+            <p class="field-hint">시/도 + 구 단위면 충분해요. 정확한 주소는 적지 않아도 돼요.</p>
+            <p class="field-error" id="err-region" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="f-time">판매 확인 시각</label>
+            <input id="f-time" name="time" type="datetime-local" required>
+            <p class="field-error" id="err-time" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="f-price">가격 <span class="optional">(선택)</span></label>
+            <input id="f-price" name="price" type="number" inputmode="numeric"
+                   min="100" max="100000" step="10" placeholder="예: 1200">
+            <p class="field-error" id="err-price" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="f-memo">메모 <span class="optional">(선택)</span></label>
+            <textarea id="f-memo" name="memo" maxlength="300"
+                      placeholder="예: 냉동고 맨 아래 칸, 3개 남아 있었어요"></textarea>
+            <p class="field-error" id="err-memo" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="f-photo">사진 URL <span class="optional">(선택)</span></label>
+            <input id="f-photo" name="photo" type="url" maxlength="500"
+                   placeholder="https://... (매대 사진 링크)">
+            <p class="field-error" id="err-photo" hidden></p>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-neutral" data-action="close-report">닫기</button>
+            <button type="submit" class="btn btn-primary">작성 완료</button>
+          </div>
+        </form>
+      </div>
+      <div id="report-success" class="success-panel" hidden>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="m8.5 12.5 2.5 2.5 5-5"></path>
+        </svg>
+        <h3>제보 내용이 준비됐어요</h3>
+        <p>
+          아래 버튼을 누르면 내용이 채워진 GitHub 이슈 작성 화면이 새 탭으로 열려요.
+          GitHub에 로그인한 뒤 <strong>Submit new issue</strong>를 누르면 제보가 접수돼요.
+        </p>
+        <div class="state-actions">
+          <a id="issue-link" class="btn btn-primary" href="#" target="_blank" rel="noopener noreferrer">
+            GitHub에서 제보 등록하기
+            <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14 5h5v5"></path>
+              <path d="M19 5 9 15"></path>
+              <path d="M19 13v6a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6"></path>
+            </svg>
+          </a>
+          <button type="button" class="btn btn-neutral" data-action="new-report">새 제보 작성</button>
+          <button type="button" class="btn btn-neutral" data-action="close-report">닫기</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <h3>신상지도</h3>
+          <p>
+            신상 과자·아이스크림 판매처를 함께 찾는 공개 제보 지도예요. 제보와 실제 재고는
+            다를 수 있어요 — 제보는 &ldquo;그 시점에 봤다&rdquo;는 기록이고, 확인은 방문으로만
+            가능해요.
+          </p>
+        </div>
+        <div>
+          <h3>바로가기</h3>
+          <ul>
+            <li><a href="https://github.com/josephleee/snackmap" target="_blank" rel="noopener noreferrer">GitHub 저장소</a></li>
+            <li><a href="https://github.com/josephleee/snackmap/issues?q=label%3Astock-report" target="_blank" rel="noopener noreferrer">전체 제보 이슈 보기</a></li>
+            <li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">지도 데이터: OpenStreetMap</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="footer-disclaimer">
+        현재 표시되는 판매처 제보는 전부 <strong>개발용 샘플</strong>이거나 실제 검증 전
+        상태예요. 지도 위 위치는 구 단위의 대략적인 위치이며 정확한 주소가 아니에요.
+      </p>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
