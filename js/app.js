@@ -15,6 +15,8 @@
     map: null,
     mapMarkers: [],
     mapInitialized: false,
+    homeMap: null,
+    homeFilter: 'all',
     saved: loadJson(STORAGE.saved, []),
     recent: loadJson(STORAGE.recent, []),
     draft: loadJson(STORAGE.draft, null)
@@ -114,6 +116,57 @@
     section.hidden = products.length === 0;
     grid.innerHTML = products.map(productCard).join('');
   }
+  function renderHomeMapList(reports) {
+    var list = $('#home-report-list');
+    var summary = $('#home-map-summary');
+    if (!list) return;
+    if (summary) summary.textContent = reports.length ? reports.length + '건의 제보가 지도에 표시되고 있어요. 모두 개발용 샘플입니다.' : '이 필터에는 아직 제보가 없어요.';
+    list.innerHTML = reports.slice().sort(function (a, b) { return new Date(b.confirmedAt) - new Date(a.confirmedAt); }).slice(0, 4).map(function (report) {
+      var product = productById(report.productId);
+      var f = freshness(report.confirmedAt);
+      return '<button type="button" class="home-report-row" data-action="open-product" data-product-id="' + escapeHtml(report.productId) + '">' +
+        '<span class="home-report-pin">' + icon('pin', 'icon-sm') + '</span>' +
+        '<span class="home-report-copy"><strong>' + escapeHtml(product ? product.name : '신상 제품') + '</strong><span>' + escapeHtml(report.region) + ' · ' + escapeHtml(report.storeName) + '</span></span>' +
+        '<span class="home-report-status status-badge ' + f.cls + '">' + escapeHtml(f.label) + '</span>' +
+        '</button>';
+    }).join('');
+  }
+  function filteredHomeReports() {
+    return DATA.reports.filter(function (report) {
+      var product = productById(report.productId);
+      if (!product) return false;
+      if (APP.homeFilter === 'sample') return report.sourceType === 'sample';
+      if (APP.homeFilter === 'fresh') return freshness(report.confirmedAt).cls === 'fresh';
+      if (APP.homeFilter === 'all') return true;
+      return product.category === APP.homeFilter;
+    });
+  }
+  function initHomeMap() {
+    var el = $('#home-map');
+    if (!el || !window.L) return;
+    var reports = filteredHomeReports();
+    if (APP.homeMap) { APP.homeMap.remove(); APP.homeMap = null; }
+    APP.homeMap = L.map(el, { scrollWheelZoom: false, zoomControl: false }).setView([37.55, 126.98], 10);
+    L.control.zoom({ position: 'topright' }).addTo(APP.homeMap);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OpenStreetMap contributors' }).addTo(APP.homeMap);
+    reports.forEach(function (report) {
+      var product = productById(report.productId);
+      var f = freshness(report.confirmedAt);
+      var marker = L.marker([report.lat, report.lng]).addTo(APP.homeMap);
+      marker.bindPopup('<strong>' + escapeHtml(product ? product.name : '신상 제보') + '</strong><br>' + escapeHtml(report.region) + '<br><small>' + escapeHtml(f.label) + ' · 개발용 샘플 · 정확한 주소 아님</small><br><button class="map-popup-action" data-product-id="' + escapeHtml(report.productId) + '">제품 상세 보기</button>');
+      marker.on('popupopen', function () {
+        var button = document.querySelector('.map-popup-action[data-product-id="' + CSS.escape(report.productId) + '"]');
+        if (button) button.addEventListener('click', function () { openProduct(report.productId); });
+      });
+    });
+    if (reports.length > 1) APP.homeMap.fitBounds(reports.map(function (r) { return [r.lat, r.lng]; }), { padding: [28, 28], maxZoom: 11 });
+    setTimeout(function () { if (APP.homeMap) APP.homeMap.invalidateSize(); }, 100);
+    renderHomeMapList(reports);
+  }
+  function renderHomeMap() {
+    $all('[data-action="home-filter"]').forEach(function (button) { button.classList.toggle('active', button.dataset.filter === APP.homeFilter); });
+    initHomeMap();
+  }
   function renderHome() {
     var grid = $('#product-grid');
     var empty = $('#search-empty');
@@ -123,7 +176,7 @@
     grid.innerHTML = products.map(productCard).join('');
     if (empty) empty.hidden = products.length !== 0;
     if (note) note.textContent = APP.query ? '“' + APP.query + '” 검색 결과 ' + products.length + '개' : '현재 ' + DATA.products.length + '개 제품';
-    renderSaved(); renderRecent(); renderSuggestions();
+    renderSaved(); renderRecent(); renderSuggestions(); renderHomeMap();
     var input = $('#search-input'); if (input && input.value !== APP.query) input.value = APP.query;
   }
   function showView(name) {
@@ -225,6 +278,8 @@
     if (action === 'open-product') { openProduct(target.dataset.productId); return; }
     if (action === 'toggle-save') { toggleSave(target.dataset.productId); return; }
     if (action === 'open-report') { openReport(target.dataset.productId); return; }
+    if (action === 'home-filter') { APP.homeFilter = target.dataset.filter || 'all'; renderHomeMap(); return; }
+    if (action === 'scroll-products') { var productSection = $('#products-section'); if (productSection) productSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (action === 'close-report') { closeReport(); return; }
     if (action === 'new-report') { openReport(APP.selectedProductId); return; }
     if (action === 'set-view') { APP.view = target.dataset.view || 'list'; if (APP.selectedProductId) renderDetail(productById(APP.selectedProductId)); return; }
